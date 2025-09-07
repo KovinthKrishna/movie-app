@@ -5,11 +5,12 @@ import { images } from "@/constants/images";
 import { fetchMovies } from "@/services/api";
 import { updateSearchCount } from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Text, View } from "react-native";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const lastRecordedQueryRef = useRef<string | null>(null);
 
   const {
     data: movies,
@@ -29,16 +30,25 @@ const Search = () => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
         await loadMovies();
-
-        if (movies?.length > 0 && movies?.[0])
-          await updateSearchCount(searchQuery, movies[0]);
       } else {
         reset();
+        lastRecordedQueryRef.current = null;
       }
     }, 500);
-
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (
+      searchQuery.trim() &&
+      movies?.length > 0 &&
+      movies[0] &&
+      lastRecordedQueryRef.current !== searchQuery
+    ) {
+      updateSearchCount(searchQuery, movies[0]);
+      lastRecordedQueryRef.current = searchQuery;
+    }
+  }, [movies]);
 
   return (
     <View className="flex-1 bg-primary">
